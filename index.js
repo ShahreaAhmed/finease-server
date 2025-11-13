@@ -135,8 +135,7 @@ async function run() {
     const db = client.db("finease-db");
     const fineaseCollection = db.collection("finease");
 
-    // -----------------------------
-    // Get All Data (all users)
+    // Get All Data 
     app.get("/finease", async (req, res) => {
       try {
         const result = await fineaseCollection.find().toArray();
