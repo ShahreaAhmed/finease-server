@@ -1,16 +1,17 @@
 const express = require("express");
 const cors = require("cors");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+
 const app = express();
 const port = 4000;
 
 app.use(cors());
 app.use(express.json());
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+// MongoDB URI
 const uri =
   "mongodb+srv://fineasedbUser:BjWplUITXpLj7rmx@cluster0.0hquzbx.mongodb.net/?appName=Cluster0";
 
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -22,95 +23,75 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     await client.connect();
-
     const db = client.db("finease-db");
-    const incomeExpenseCollection = db.collection("finease");
+    const fineaseCollection = db.collection("finease");
 
+    // Get All Data
     app.get("/finease", async (req, res) => {
-      const result = await incomeExpenseCollection.find().toArray();
+      const result = await fineaseCollection.find().toArray();
       res.send(result);
     });
 
+    // Get Single Transaction by ID
     app.get("/finease/:id", async (req, res) => {
       const { id } = req.params;
-      console.log(id);
-      const objectId = new ObjectId(id);
-
-      const result = await incomeExpenseCollection.findOne({ _id: objectId });
-
-      res.send({
-        success: true,
-        result,
-      });
+      const result = await fineaseCollection.findOne({ _id: new ObjectId(id) });
+      res.send({ success: true, result });
     });
 
+    // Get All Transactions by Logged-in User Email
+    app.get("/finease/user/:email", async (req, res) => {
+      try {
+        const { email } = req.params;
+        const userData = await fineaseCollection.find({ email }).toArray();
+
+        res.send({
+          success: true,
+          data: userData,
+        });
+      } catch (error) {
+        console.error("Error fetching user transactions:", error);
+        res.status(500).send({ success: false, message: "Server Error" });
+      }
+    });
+
+    // Add New Transaction
     app.post("/finease", async (req, res) => {
       const data = req.body;
-      // console.log(data)
-      const result = await incomeExpenseCollection.insertOne(data);
-
-      res.send({
-        success: true,
-        result,
-      });
+      const result = await fineaseCollection.insertOne(data);
+      res.send({ success: true, result });
     });
 
+    // Update Transaction
     app.put("/finease/:id", async (req, res) => {
       const { id } = req.params;
       const data = req.body;
-      // console.log(id)
-      // console.log(data)
-      const objectId = new ObjectId(id);
-      const filter = { _id: objectId };
-      const update = {
-        $set: data,
-      };
-
-      const result = await incomeExpenseCollection.updateOne(filter, update);
-
-      res.send({
-        success: true,
-        result,
-      });
+      const filter = { _id: new ObjectId(id) };
+      const update = { $set: data };
+      const result = await fineaseCollection.updateOne(filter, update);
+      res.send({ success: true, result });
     });
 
+    // Delete Transaction
     app.delete("/finease/:id", async (req, res) => {
       const { id } = req.params;
-      const objectId = new ObjectId(id);
-      const filter = { _id: objectId };
-      const result = await incomeExpenseCollection.deleteOne(filter);
-
-      res.send({
-        success: true,
-        result,
-      });
-    });
-
-    app.get("/finease/user/:email", async (req, res) => {
-      
-        const { email } = req.params;
-        const userData = await incomeExpenseCollection
-          .find({ email })
-          .toArray();
-        res.send({ success: true, data: userData });
-      
+      const result = await fineaseCollection.deleteOne({ _id: new ObjectId(id) });
+      res.send({ success: true, result });
     });
 
     await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
-  } finally {
-    // Ensures that the client will close when you finish/error
-    // await client.close();
+    console.log("Connected to MongoDB Atlas!");
+  } catch (error) {
+    console.error("Database connection error:", error);
   }
 }
 run().catch(console.dir);
 
+
 app.get("/", (req, res) => {
-  res.send("hello world!");
+  res.send("Finease API is running...");
 });
 
 app.listen(port, () => {
-  console.log(`Example app listening on ${port}`);
+  console.log(`Server running on http://localhost:${port}`);
 });
