@@ -159,7 +159,7 @@ async function run() {
       }
     });
 
-    // Get All Transactions by Logged-in User Email with optional sorting
+    // transactions by login User
     app.get("/finease/user/:email", async (req, res) => {
       try {
         const email = req.params.email;
